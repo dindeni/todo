@@ -1,9 +1,12 @@
-import React, {Fragment, useState, useReducer} from 'react';
+import React, {Fragment,useReducer} from 'react';
 
 import {
     AppBar, Typography, withStyles, Button, Table,
     TableHead, TableRow, TableCell} from "@material-ui/core";
 import SidePanel from './sidePanel';
+import MainTableContent from './mainTableContent';
+import EditTodo from './editTodo';
+import {reducerFormValue, reducerEdit, reducerIndex} from "./reducers/reducers";
 
 export const Context = React.createContext(null);
 
@@ -17,7 +20,6 @@ const styles = {
 
 };
 
-
 const todo = (props)=>{
 
     const reducer = (state, action)=>{
@@ -30,17 +32,12 @@ const todo = (props)=>{
         }
     };
 
-    const reducerFormValue = (state, action)=>{
-        switch (action.type){
-            case 'add':
-                return [...state, {name: action.name, description: action.description, date: action.date,
-                radioValue: action.radioValue, status: action.status, tag: action.tag}]
-        }
-
-    };
-
     const [state, dispatch] = useReducer(reducer, false);
     const [stateValue, dispatchValue] = useReducer(reducerFormValue, []);
+    const [stateEdit, dispatchEdit] = useReducer(reducerEdit, false);
+    const [stateIndex, dispatchIndex] = useReducer(reducerIndex, null);
+
+    console.log(stateIndex);
 
 
     const addTask =  (evt)=>{
@@ -51,7 +48,12 @@ const todo = (props)=>{
         state, dispatch, stateValue, dispatchValue}}>
         <SidePanel/></Context.Provider> : null;
 
-    return(
+        const todoEdit = stateEdit ? <Context.Provider value={{
+            stateEdit, dispatchEdit, stateValue, dispatchValue,
+        stateIndex, dispatchIndex}}>
+            <EditTodo/></Context.Provider> : null;
+
+        return(
         <Fragment>
             <AppBar className={props.classes.root} position="static" color="primary">
                 <Typography color="inherit" align='center'
@@ -65,6 +67,7 @@ const todo = (props)=>{
                 Добавить задачу
             </Button>
             {panel}
+            {todoEdit}
             <Table>
                 <TableHead>
                     <TableRow>
@@ -94,6 +97,10 @@ const todo = (props)=>{
                         </TableCell>
                     </TableRow>
                 </TableHead>
+                <Context.Provider value={{stateValue, dispatchValue,
+                stateEdit, dispatchEdit, stateIndex, dispatchIndex}}>
+                    <MainTableContent/>
+                </Context.Provider>
             </Table>
         </Fragment>
 

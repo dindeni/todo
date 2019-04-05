@@ -1,14 +1,13 @@
 import React, {useContext, useState} from 'react';
 import {
-    AppBar, Drawer, Typography, withStyles,
-    TextField, RadioGroup, FormControlLabel, Radio,
-    FormControl, InputLabel, Select, Button, Fab, CircularProgress, Snackbar} from "@material-ui/core";
+    Drawer, withStyles, TextField, RadioGroup, FormControlLabel, Radio,
+    FormControl, InputLabel, Select, Button, Fab, CircularProgress} from "@material-ui/core";
 import SelectReact from 'react-select';
 import {List, Description, DateRange, Done, AddAlert, Check, Save} from '@material-ui/icons';
 
 import {Context} from "./todo";
 
-const styles = theme => ({
+const styles = {
     paper: {
         width: '40%',
         padding: '40px 0 60px 0',
@@ -60,7 +59,6 @@ const styles = theme => ({
     },
     svgIcon:{
         width: '30px',
-        /*marginTop: '5px'*/
     },
     fabProgress: {
         position: 'absolute',
@@ -80,12 +78,8 @@ const styles = theme => ({
         marginBottom: 'auto',
         bottom: '0',
         height: '20%',
-    },
-    snackbar: {
-        position: 'absolute',
-        bottom: '0'
-    },
-});
+    }
+};
 
 const options = [
     { value: 'тег0', label: 'тег0'},
@@ -108,31 +102,31 @@ const selectStyles = {
 
 const sidePanel = (props)=>{
 
+    const {stateEdit, dispatchEdit} = useContext(Context);
+    const {stateValue, dispatchValue} = useContext(Context);
+    const {stateIndex, dispatchIndex} = useContext(Context);
+
     const [radioButtonsState, setRadioButtonsState] = useState(false);
-    const [date, setDate]=useState('');
-    const [selectedOption, setSelectedOption] = useState(null);
+    const [date, setDate]=useState(stateValue[stateIndex].date);
     const [errorInput, setErrorInput] = useState(false);
-    const [name, setName] = useState('');
-    const [description, setDescription] = useState('');
-    const [radioValue, setRadioValue] = useState('');
-    const [status, setStatus] = useState('');
-    const [tag, setTag] = useState('');
+    const [name, setName] = useState(stateValue[stateIndex].name);
+    const [description, setDescription] = useState(stateValue[stateIndex].description);
+    const [radioValue, setRadioValue] = useState(stateValue[stateIndex].radioValue);
+    const [status, setStatus] = useState(stateValue[stateIndex].status);
+    const [tag, setTag] = useState(stateValue[stateIndex].tag);
     const [progressState, setProgressState] = useState({loading: false, success: false, show:false});
 
-    const {state, dispatch} = useContext(Context);
-    const {stateValue, dispatchValue} = useContext(Context);
-    const [formValue, setFormValue] = useState({name: '', description: ''});
-    const [stateSnackBar, setStateSnackBar] = useState(false);
 
     const getDate = ()=>{
-        return new Date().toISOString().substr(0, 10)
+        return stateValue[stateIndex].date
     };
 
     let radioButtons = null;
-    if (radioButtonsState){
+    if (stateValue[stateIndex].radioValue){
         radioButtons = <RadioGroup row={true}
                                    className={props.classes.formGroup}
-        onChange={(evt)=>setRadioValue(evt.target.value)}>
+                                   onChange={(evt)=>setRadioValue(evt.target.value)}
+        value={stateValue[stateIndex].radioValue}>
             <FormControlLabel value="Срочная важная задача"
                               control={<Radio />}
                               label="Срочная важная задача"  />
@@ -147,7 +141,6 @@ const sidePanel = (props)=>{
                               label="Не срочная не важная задача" />
         </RadioGroup>;
     }
-   /* let name, description, radioValue, status, tag;*/
 
     const changeDate = (evt)=>{
         setDate(evt.target.value);
@@ -156,51 +149,28 @@ const sidePanel = (props)=>{
 
     const saveData = ()=>{
         let result = {name, description, date, radioValue, status, tag};
-        if (!result.name){
-            setErrorInput(true)
-        }else {
-            setErrorInput(false);
-            dispatchValue({type: 'add', name: result.name, description: result.description,
+            dispatchValue({type: 'saveEditedData', index: stateIndex, name: result.name, description: result.description,
                 date: result.date, radioValue: result.radioValue, status: result.status,
                 tag: result.tag});
-            /*dispatch({type: 'false'})*/
 
-            setProgressState({show: true, loading: true, success: false});
+        setProgressState({show: true, loading: true, success: false});
 
-            setTimeout(() => {
-                setProgressState({
-                    loading: false,
-                    success: true,
-                    show: false
-                });
-                dispatch({type: 'false'})
-            }, 2000);
-        }
-
+        setTimeout(() => {
+            setProgressState({
+                loading: false,
+                success: true,
+                show: false
+            });
+            dispatchEdit({type: 'false'})
+        }, 2000);
     };
 
-    const cancel = ()=>{
-        if (stateSnackBar){
-            setStateSnackBar(false);
-            dispatch({type: 'false'})
-        } else setStateSnackBar(true);
+    const selectedValue = ()=>{
+            return options.filter((option)=>{
+                return option.value === stateValue[stateIndex].tag
+            })
     };
 
-    const snackBar =
-        stateSnackBar ? <div>
-            <Snackbar className={props.classes.snackbar}
-            anchorOrigin={{
-                vertical: 'bottom',
-                horizontal: 'left',
-            }}
-            open={stateSnackBar}
-                      close={()=>setStateSnackBar(false)}
-            autoHideDuration={6000}
-            message={"Данные не сохранены"}
-
-        >
-        </Snackbar>
-    </div> : null;
 
     const progress = progressState.show ? <div className={props.classes.progressWrapper}>
         <Fab color="primary">
@@ -211,21 +181,15 @@ const sidePanel = (props)=>{
 
     return(
         <Drawer open={true} classes={{paper: props.classes.paper}}>
-            <AppBar color="primary" className={props.classes.appBar}>
-                    <Typography color="inherit" align='center'
-                                variant='title' className={props.classes.h2}>
-                        Новая задача
-                    </Typography>
-            </AppBar>
             <form className={props.classes.form}>
                 <div className={props.classes.divInput}>
                     <List className={props.classes.svgIcon} style={{marginTop: '10px'}}/>
                     <TextField label='Название' type='text'
                                className={props.classes.input}
                                onChange={(evt)=>setName(evt.target.value)}
-                    error={errorInput} required={true}
+                               error={errorInput} required={true}
                                helperText={errorInput ? 'Обязательное поле' :
-                               ''}>
+                                   ''} defaultValue={stateValue[stateIndex].name}>
 
                     </TextField>
                 </div>
@@ -233,7 +197,8 @@ const sidePanel = (props)=>{
                     <Description className={props.classes.svgIcon}/>
                     <TextField label='Описание задачи' type='text'
                                className={props.classes.input}
-                               multiline={true} onChange={(evt)=>setDescription(evt.target.value)}>
+                               multiline={true} onChange={(evt)=>setDescription(evt.target.value)}
+                               defaultValue={stateValue[stateIndex].description}>
                     </TextField>
                 </div>
                 <div className={props.classes.divInput}>
@@ -253,7 +218,8 @@ const sidePanel = (props)=>{
                         <Select
                             native
                             inputProps={{name: 'age', id: 'status-native-simple'}}
-                            onChange={(evt)=>setStatus(evt.target.value)}>
+                            onChange={(evt)=>setStatus(evt.target.value)}
+                            defaultValue={stateValue[stateIndex].status}>
                             <option value={'Выполняется'}>Выполняется</option>
                             <option value={'На потом'}>На потом</option>
                             <option value={'Выполнена'}>Выполнена</option>
@@ -263,7 +229,7 @@ const sidePanel = (props)=>{
                 <div className={props.classes.divInput} style={{alignItems: 'start'}}>
                     <AddAlert className={props.classes.svgIcon} style={{marginTop: '15px'}}/>
                     <SelectReact options={options}
-                                 value={{selectedOption}}
+                                 value={selectedValue()}
                                  placeholder="Тег" onChange={(opt)=>setTag(opt.value)}
                                  styles={selectStyles}/>
                 </div>
@@ -271,19 +237,18 @@ const sidePanel = (props)=>{
             </form>
             <div color="primary" className={props.classes.divButtons}>
                 <Button size="medium" fullWidth={false} color='primary'
-                         variant='outlined' className={props.classes.button}
-                         onClick={saveData}>
-                Сохранить
-            </Button>
+                        variant='outlined' className={props.classes.button}
+                        onClick={saveData}>
+                    Сохранить
+                </Button>
                 <Button size="medium" fullWidth={false} color='secondary'
                         variant='outlined' className={props.classes.button}
-                        onClick={cancel}
+                        onClick={()=>dispatchEdit({type: 'editFalse'})}
                 >
                     Отмена
                 </Button>
             </div>
             {progress}
-            {snackBar}
         </Drawer>
     )
 };
